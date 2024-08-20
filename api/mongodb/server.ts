@@ -8,7 +8,7 @@ process.on("uncaughtException", (err) => {
   process.exit(1);
 });
 
-dotenv.config({ path: "./.env" });
+dotenv.config({ path: "./.env.local" });
 const app = express();
 
 if (!(process.env && process.env.NEXT_PUBLIC_DB && process.env.NEXT_PUBLIC_PASSWORD)) {
