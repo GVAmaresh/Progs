@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const express = require("express");
+const userRouter = require('./routes/userRoutes');
 
 process.on("uncaughtException", (err) => {
   console.log("UncaughtException Shutting down....");
@@ -10,11 +11,14 @@ process.on("uncaughtException", (err) => {
 
 dotenv.config({ path: "./.env.local" });
 const app = express();
+app.use(express.json()); 
+app.use('/api/v1/users', userRouter);
 
 if (!(process.env && process.env.NEXT_PUBLIC_DB && process.env.NEXT_PUBLIC_PASSWORD)) {
   console.log("Cannot Found the database");
   process.exit(1);
 }
+
 
 const DB = process.env.NEXT_PUBLIC_DB.replace("<PASSWORD>", process.env.NEXT_PUBLIC_PASSWORD);
 
