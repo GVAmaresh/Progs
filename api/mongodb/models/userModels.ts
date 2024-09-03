@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
-const validator = require("validator") 
-const bcrypt = require("bcrypt") 
+import validator from 'validator';
+import bcrypt from 'bcrypt';
 
 interface IUser extends Document {
     name: string;
@@ -8,7 +8,15 @@ interface IUser extends Document {
     password: string;
     avatar?: string;
     passwordConfirmation?: string;
-
+    bio?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+    subscriptions?: string[]; 
+    playlists?: { name: string; videos: string[] }[]; 
+    videos?: string[]; 
+    isAdmin?: boolean;
+    isPremium?: boolean;
+    preferences?: { theme: string; notifications: boolean }; 
     isPasswordMatch(password: string): Promise<boolean>;
 }
 
@@ -34,8 +42,57 @@ const userSchema: Schema<IUser> = new Schema({
     },
     avatar: {
         type: String
+    },
+    bio: {
+        type: String,
+        maxlength: 500
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
+    },
+    updatedAt: {
+        type: Date,
+        default: Date.now
+    },
+    subscriptions: [{
+        type: Schema.Types.ObjectId,
+        ref: 'User'
+    }],
+    playlists: [{
+        name: {
+            type: String,
+            required: true
+        },
+        videos: [{
+            type: Schema.Types.ObjectId,
+            ref: 'Video'
+        }]
+    }],
+    videos: [{
+        type: Schema.Types.ObjectId,
+        ref: 'Video'
+    }],
+    isAdmin: {
+        type: Boolean,
+        default: false
+    },
+    isPremium: {
+        type: Boolean,
+        default: false
+    },
+    preferences: {
+        theme: {
+            type: String,
+            enum: ['light', 'dark'],
+            default: 'light'
+        },
+        notifications: {
+            type: Boolean,
+            default: true
+        }
     }
-});
+}, { timestamps: true });
 
 userSchema.virtual('passwordConfirmation')
     .set(function(this: any, value: string) {
@@ -52,7 +109,7 @@ userSchema.pre<IUser>('save', async function(next) {
         const salt = await bcrypt.genSalt(10);
         this.password = await bcrypt.hash(this.password, salt);
         next();
-    } catch (error:any) {
+    } catch (error: any) {
         next(error);
     }
 });
