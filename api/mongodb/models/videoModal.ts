@@ -4,6 +4,7 @@ import validator from 'validator';
 interface IVideo extends Document {
     keyID: string;
     title: string;
+    channelID: Schema.Types.ObjectId;
     size: number;
     description?: string;
     uploader: Schema.Types.ObjectId; 
@@ -25,7 +26,11 @@ const videoSchema: Schema<IVideo> = new Schema({
         minlength: 2,
         maxlength: 255
     },
-    
+    channelID:{
+        type: Schema.Types.ObjectId,
+        ref: 'Channel',
+        required: true
+    },
     title: {
         type: String,
         required: true,
@@ -56,7 +61,8 @@ const videoSchema: Schema<IVideo> = new Schema({
         min: 0
     },
     thumbnail: {
-        type: String
+        type: String,
+        required: true
     },
     views: {
         type: Number,

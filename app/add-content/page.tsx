@@ -2,7 +2,7 @@
 import { useState, useRef, ChangeEvent, FormEvent } from 'react';
 import { randomBytes } from 'crypto';
 
-const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunk size
+const CHUNK_SIZE = 5 * 1024 * 1024; 
 const baseUrl = 'http://127.0.0.1:5000';
 
 export default function Add_Contents() {

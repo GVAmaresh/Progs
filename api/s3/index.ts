@@ -1,142 +1,67 @@
-import express, { Request, Response } from 'express';
-import cors from 'cors';
-import bodyParser from 'body-parser';
-import multer from 'multer';
-import dotenv from 'dotenv';
-import { S3Client, PutObjectCommand, CreateMultipartUploadCommand, UploadPartCommand, ListPartsCommand, CompleteMultipartUploadCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { uid } from 'uid';
+import express, { Request, Response } from "express";
+import cors from "cors";
+import bodyParser from "body-parser";
+import multer from "multer";
+import dotenv from "dotenv";
 
-dotenv.config({ path: './.env.local' });
+import { S3Client } from "@aws-sdk/client-s3";
+
+import {
+  completeUpload,
+  deleteS3Object,
+  initialUpload,
+  uploadChannelIcon,
+  uploadChunks,
+  uploadThumbNail
+} from "./components";
+const AWS = require("aws-sdk");
+dotenv.config({ path: "./.env.local" });
 
 const app = express();
 
-const accessKeyId = process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID as string;
-const secretAccessKey = process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY as string;
-const region = process.env.NEXT_PUBLIC_AWS_REGION as string;
-const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME as string;
+export const accessKeyId = process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID as string;
+export const secretAccessKey = process.env
+  .NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY as string;
+export const region = process.env.NEXT_PUBLIC_AWS_REGION as string;
+export const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME as string;
 
 if (!accessKeyId || !secretAccessKey || !region || !bucketName) {
-  console.error('Missing required environment variables');
+  console.error("Missing required environment variables");
   process.exit(1);
 }
 
-const client = new S3Client({
+export const client = new S3Client({
   region,
   credentials: {
     accessKeyId,
-    secretAccessKey,
+    secretAccessKey
   },
+  endpoint: `https://${bucketName}.s3.${region}.amazonaws.com`
 });
 
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+export const s3 = new AWS.S3({
+  accessKeyId,
+  secretAccessKey,
+  region
+});
+
+app.use(bodyParser.json({ limit: "50mb" }));
+app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 app.use(cors());
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-app.post('/initiateUpload', async (req: Request, res: Response) => {
-  try {
-    const { fileName, contentType } = req.body;
-    const command = new CreateMultipartUploadCommand({
-      Bucket: bucketName,
-      Key: fileName,
-      ContentType: contentType,
-    });
-    const upload = await client.send(command);
-    res.json({ uploadId: upload.UploadId });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Error initializing upload' });
-  }
-});
+app.post("/initiateUpload", initialUpload);
 
-app.post('/upload', upload.single('file'), async (req: Request, res: Response) => {
-  try {
-    const { index, fileName, uploadId } = req.body;
-    const file = req.file;
+app.post("/upload", upload.single("file"), uploadChunks);
 
-    if (!file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
-    }
+app.post("/completeUpload", completeUpload);
 
-    const command = new UploadPartCommand({
-      Bucket: `${bucketName}/contents`,
-      Key: fileName,
-      PartNumber: Number(index) + 1,
-      UploadId: uploadId,
-      Body: file.buffer,
-    });
+app.post("/uploadThumbnail", upload.single("file"), uploadThumbNail);
 
-    await client.send(command);
-    res.json({ success: true, message: 'Chunk uploaded successfully' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Error uploading chunk' });
-  }
-});
+app.post("/uploadChannelIcon", upload.single("file"), uploadChannelIcon);
 
-app.post('/completeUpload', async (req: Request, res: Response) => {
-  try {
-    const { fileName, uploadId } = req.body;
-
-    const listPartsCommand = new ListPartsCommand({
-      Bucket: `${bucketName}/contents`,
-      Key: fileName,
-      UploadId: uploadId,
-    });
-
-    const listPartsResponse = await client.send(listPartsCommand);
-
-    const parts = listPartsResponse.Parts?.map(part => ({
-      ETag: part.ETag,
-      PartNumber: part.PartNumber,
-    })) || [];
-
-    const completeCommand = new CompleteMultipartUploadCommand({
-      Bucket: `${bucketName}/contents`,
-      Key: fileName,
-      UploadId: uploadId,
-      MultipartUpload: { Parts: parts },
-    });
-
-    const result = await client.send(completeCommand);
-    res.json({ success: true, message: 'Upload complete', data: result.Location });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Error completing upload' });
-  }
-});
-
-app.post('/uploadThumbnail', upload.single('file'), async (req: Request, res: Response) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-
-    const { originalname, buffer, mimetype } = req.file;
-    const filename = `${uid(16)}`;
-
-    const command = new PutObjectCommand({
-      Bucket: `${bucketName}/thumbnail`,
-      Key: filename,
-      Body: buffer,
-      ContentType: mimetype,
-    });
-
-    await client.send(command);
-
-    const url = await getSignedUrl(client, command, { expiresIn: 3600 });
-
-    res.status(200).json({
-      message: 'File uploaded successfully',
-      fileUrl: url,
-    });
-  } catch (error) {
-    console.error('Error uploading file:', error);
-    res.status(500).json({ error: 'Error uploading file' });
-  }
-});
+app.post("/deleteObject", deleteS3Object);
 
 const port = 5000;
 app.listen(port, () => {

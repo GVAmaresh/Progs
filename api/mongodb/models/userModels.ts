@@ -15,7 +15,9 @@ interface IUser extends Document {
     playlists?: { name: string; videos: string[] }[]; 
     videos?: string[]; 
     isAdmin?: boolean;
+    role?: string;
     isPremium?: boolean;
+    active?: boolean;
     preferences?: { theme: string; notifications: boolean }; 
     isPasswordMatch(password: string): Promise<boolean>;
 }
@@ -55,31 +57,18 @@ const userSchema: Schema<IUser> = new Schema({
         type: Date,
         default: Date.now
     },
-    subscriptions: [{
-        type: Schema.Types.ObjectId,
-        ref: 'User'
-    }],
-    playlists: [{
-        name: {
-            type: String,
-            required: true
-        },
-        videos: [{
-            type: Schema.Types.ObjectId,
-            ref: 'Video'
-        }]
-    }],
-    videos: [{
-        type: Schema.Types.ObjectId,
-        ref: 'Video'
-    }],
-    isAdmin: {
-        type: Boolean,
-        default: false
+    role:{
+        type: String,
+        enum: ['user', 'admin', "content"],
+        default: 'user'
     },
     isPremium: {
         type: Boolean,
         default: false
+    },
+    active:{
+        type: Boolean,
+        default: true
     },
     preferences: {
         theme: {

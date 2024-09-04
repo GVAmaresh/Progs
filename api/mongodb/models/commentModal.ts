@@ -1,18 +1,15 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
 
 interface IComment extends Document {
-  user: mongoose.Schema.Types.ObjectId;
+  email: string;
   video: mongoose.Schema.Types.ObjectId;
   content: string;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 const commentSchema: Schema<IComment> = new Schema(
   {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+    email: {
+      type: String,
       required: true,
     },
     video: {
@@ -27,7 +24,7 @@ const commentSchema: Schema<IComment> = new Schema(
     },
   },
   {
-    timestamps: true,
+    timestamps: true, 
   }
 );
 
