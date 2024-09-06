@@ -6,10 +6,16 @@ import userRouter from "./routes/userRouter";
 import commentRouter from "./routes/commentRouter";
 import videoRouter from "./routes/videoRouter";
 import channelRouter from "./routes/channelRouter";
+import cors from 'cors';
 
 dotenv.config({ path: "../../.env.local" });
 
+
 const server: Express = express();
+
+server.use(cors({
+  origin: 'http://localhost:3000', // Allow requests from this origin
+}));
 
 server.use(express.json());
 server.use("/api/v1/users", userRouter);

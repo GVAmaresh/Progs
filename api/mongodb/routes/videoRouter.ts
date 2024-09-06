@@ -1,10 +1,11 @@
 import express from 'express';
-import { addVideo, editVideo, deleteVideo } from '../controllers/videoController';
+import { addVideo, editVideo, deleteVideo, getVideosByChannel } from '../controllers/videoController';
 
 const router = express.Router();
 
-router.post('/videos', addVideo);
-router.put('/videos/:id', editVideo);
-router.delete('/videos/:id', deleteVideo);
+router.post('/add-video', addVideo);
+router.post('/get-video-channel', getVideosByChannel);
+router.put('/edit-video', editVideo);
+router.delete('/delete-video', deleteVideo);
 
 export default router;

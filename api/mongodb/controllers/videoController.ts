@@ -2,24 +2,44 @@ import { Request, Response } from "express";
 import Video from "../models/videoModal";
 import catchAsync from "../utils/catchAsync";
 import AppError from "../utils/appError";
+import Channel from "../models/channelModal";
+// key: completeData.videoUrl,
+// email: newEmail,
+// channelName: video.channelName,
+// videoName: video.videoName,
+// videoDescription: video.videoDescription,
+// thumbnail: video.Thumbnail
 
 export const addVideo = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { keyID, title, size, tags } = req.body;
-    const video = new Video({
-      keyID,
-      title,
-      size,
-      tags
-    });
+    const { key, email, channelName, videoName, videoDescription, thumbnail } =
+      req.body;
 
-    await video.save();
-    if (!video) {
-      res.status(404).json({ success: false, message: "Video not found" });
+    console.log(email, channelName, videoName, videoDescription);
+    console.log(key, thumbnail);
+    const channel = await Channel.findOne({ email, channelName });
+
+    // Check if the channel exists
+    if (!channel) {
+      res.status(404).json({ success: false, message: "Channel not found" });
       return;
     }
-    res.status(201).json({ success: true, data: video });
+
+    // Create the new video
+    const video = new Video({
+      keyID: key,
+      channelID: channel._id,
+      title: videoName,
+      description: videoDescription,
+      thumbnail: thumbnail
+    });
+
+    const savedVideo = await video.save();
+
+    // Respond with the saved video
+    res.status(201).json({ success: true, data: savedVideo });
   } catch (error: any) {
+    console.error("Error adding video:", error);
     res.status(400).json({ success: false, error: error.message });
   }
 };
@@ -107,11 +127,42 @@ export const getAllVideos = catchAsync(
   }
 );
 
+export const getVideosByChannel = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { email, channelName } = req.body;
+
+    console.log(email, channelName);
+    const channel = await Channel.findOne({ email, channelName });
+
+    if (!channel) {
+      res.status(404).json({ success: false, message: "Channel not found" });
+      return;
+    }
+
+    const videos = await Video.find({ channelID: channel._id }).sort({
+      createdAt: -1
+    });
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Video Extracted Successfully",
+        data: videos
+      });
+  } catch (err: any) {
+    console.error("Error getting videos by channel:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
 export const getVideoById = catchAsync(
   async (req: Request, res: Response): Promise<void> => {
-    const { id } = req.params; 
-    
-    const video = await Video.findById(id).lean(); 
+    const { id } = req.params;
+
+    const video = await Video.findById(id).lean();
 
     if (!video) {
       res.status(404).json({ success: false, message: "Video not found" });
@@ -128,7 +179,7 @@ export const getVideoById = catchAsync(
     res.status(200).json({
       status: "success",
       data: {
-        video: safeVideo 
+        video: safeVideo
       }
     });
   }

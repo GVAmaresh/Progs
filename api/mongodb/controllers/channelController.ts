@@ -3,7 +3,7 @@ import Channel from "../models/channelModal";
 import catchAsync from "../utils/catchAsync";
 
 export const createChannel = async (req: Request, res: Response) => {
-  const { channelName, email, description, subscribersCount } = req.body;
+  const { channelName, email, channelDescription:description, key } = req.body;
 
   try {
     if (!channelName || !email) {
@@ -14,8 +14,9 @@ export const createChannel = async (req: Request, res: Response) => {
     const newChannel = new Channel({
       channelName,
       email,
+      channelIcon:key,
       description,
-      subscribersCount
+      subscribersCount:0
     });
 
     await newChannel.save();
@@ -32,8 +33,14 @@ export const createChannel = async (req: Request, res: Response) => {
 
 export const getAllChannels = catchAsync(
   async (req: Request, res: Response) => {
-    const { email } = req.body;
+    const email = req.body.email as string;
+    console.log(email);
+    if (!email) {
+      res.status(400).json({ message: "Email is required" });
+      return;
+    }
     const channels = await Channel.find({ email });
+    console.log(channels)
     res
       .status(200)
       .json({ message: "Channels fetched successfully", data: channels });

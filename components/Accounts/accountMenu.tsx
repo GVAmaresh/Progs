@@ -1,44 +1,22 @@
-"use client";
+"use client"
 import * as React from "react";
-import { useState, useEffect } from "react";
 import Box from "@mui/material/Box";
-import Avatar from "@mui/material/Avatar";
-import Menu from "@mui/material/Menu";
-import IconButton from "@mui/material/IconButton";
 import CardMedia from "@mui/material/CardMedia";
 import Tooltip from "@mui/material/Tooltip";
-import { AuthPage } from "./auth-page";
-// import { monitorAuthState } from "@/services/firebase/auth";
+import Menu from "@mui/material/Menu";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import AccountPage from "./account-page";
+import { useState, useEffect } from "react";
 
 import { useUser } from "@clerk/nextjs";
 
-const darkTheme = createTheme({
-  palette: {
-    mode: "dark"
-  }
-});
-
-export default function AccountMenu() {
+export const useUserDetails = () => {
   const { user: userDetails } = useUser();
-
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const [user, setUser] = React.useState<any>(null);
-  const [image, setImage] = React.useState<string>("/images/avatar.png");
-  const open = Boolean(anchorEl);
-
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
+  const [user, setUser] = useState<any>(null);
+  const [image, setImage] = useState<string>("/images/avatar.png");
 
   useEffect(() => {
     if (userDetails) {
-      console.log(userDetails.fullName);
       setImage(userDetails.imageUrl);
       setUser({
         displayName: userDetails.fullName || 'Default Name',
@@ -47,8 +25,28 @@ export default function AccountMenu() {
       });
     }
   }, [userDetails]);
-  const handleSign = (user: any) => {
-    setUser(user);
+
+  return { user, image };
+};
+
+
+const darkTheme = createTheme({
+  palette: {
+    mode: "dark"
+  }
+});
+
+const AccountMenu: React.FC = () => {
+  const { user, image } = useUserDetails(); // Use the custom hook
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+
+  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
   };
 
   return (
@@ -116,4 +114,6 @@ export default function AccountMenu() {
       </React.Fragment>
     </ThemeProvider>
   );
-}
+};
+
+export default AccountMenu;

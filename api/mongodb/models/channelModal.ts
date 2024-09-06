@@ -5,6 +5,7 @@ interface IChannel extends Document {
   videoId: mongoose.Schema.Types.ObjectId;
   channelName: string;
   description?: string;
+  channelIcon:string;
   subscribersCount: number;
   createdAt: Date;
   updatedAt: Date;
@@ -21,6 +22,10 @@ const channelSchema: Schema<IChannel> = new Schema(
       required: true,
       trim: true,
     },
+    channelIcon:{
+      type: String,
+      required: true,
+    },
     description: {
       type: String,
       trim: true,
@@ -31,7 +36,7 @@ const channelSchema: Schema<IChannel> = new Schema(
     },
   },
   {
-    timestamps: true, // Automatically adds createdAt and updatedAt fields
+    timestamps: true, 
   }
 );
 

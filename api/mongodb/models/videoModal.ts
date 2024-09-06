@@ -43,7 +43,6 @@ const videoSchema: Schema<IVideo> = new Schema({
     },
     size: {
         type: Number,
-        required: true,
         min: 1
     },
     description: {
@@ -53,16 +52,13 @@ const videoSchema: Schema<IVideo> = new Schema({
     uploader: {
         type: Schema.Types.ObjectId,
         ref: 'User',
-        required: true
     },
     duration: {
         type: Number,
-        required: true,
         min: 0
     },
     thumbnail: {
         type: String,
-        required: true
     },
     views: {
         type: Number,

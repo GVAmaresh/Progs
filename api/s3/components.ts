@@ -1,26 +1,26 @@
 import { Request, Response } from "express";
-import { bucketName, client, s3 } from ".";
+import { bucketName, client, s3 } from "./";
+
 import { uid } from "uid";
 import { DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { init } from "./service";
 
-export const initialUpload = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+export const initialUpload = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { fileName } = req.body;
+    const { fileName, fileType } = req.body;
+    
     const params = {
       Bucket: bucketName,
-      Key: `Contents/${fileName as string}`
+      Key: `Contents/${fileName as string}`,
+      ContentType: fileType 
     };
+    
     const upload = await s3.createMultipartUpload(params).promise();
     res.json({ uploadId: upload.UploadId });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({ success: false, message: "Error initializing upload" });
+    res.status(500).json({ success: false, message: "Error initializing upload" });
   }
 };
 
@@ -52,6 +52,7 @@ export const uploadChunks = async (req: Request, res: Response) => {
   });
 };
 
+
 export const completeUpload = async (
   req: Request,
   res: Response
@@ -60,9 +61,7 @@ export const completeUpload = async (
   const uploadId = req.query.uploadId;
 
   if (!uploadId || !fileName) {
-    res
-      .status(400)
-      .json({ success: false, message: "Missing uploadId or fileName" });
+    res.status(400).json({ success: false, message: "Missing uploadId or fileName" });
     return;
   }
 
@@ -75,11 +74,15 @@ export const completeUpload = async (
   try {
     const listPartsResponse = await s3.listParts(listPartsParams).promise();
 
-    const parts =
-      listPartsResponse.Parts?.map((part: any) => ({
-        ETag: part.ETag,
-        PartNumber: part.PartNumber
-      })) || [];
+    if (!listPartsResponse.Parts || listPartsResponse.Parts.length === 0) {
+      res.status(400).json({ success: false, message: "No parts found for the upload" });
+      return;
+    }
+
+    const parts = listPartsResponse.Parts.map((part: any) => ({
+      ETag: part.ETag,
+      PartNumber: part.PartNumber
+    }));
 
     const completeParams = {
       Bucket: bucketName,
@@ -90,9 +93,7 @@ export const completeUpload = async (
       }
     };
 
-    const completeUploadResponse = await s3
-      .completeMultipartUpload(completeParams)
-      .promise();
+    const completeUploadResponse = await s3.completeMultipartUpload(completeParams).promise();
     console.log("Upload complete response: ", completeUploadResponse);
 
     res.json({
@@ -101,73 +102,109 @@ export const completeUpload = async (
       key: completeUploadResponse.Key,
       data: completeUploadResponse
     });
-    return;
   } catch (error) {
     console.error("Error completing upload:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Error completing upload" });
-    return;
-  }
-};
 
-export const uploadThumbNail = async (req: Request, res: Response) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
+    // Optional: Clean up incomplete uploads to avoid orphaned multipart uploads in S3
+    try {
+      await s3.abortMultipartUpload({
+        Bucket: bucketName,
+        Key: `Contents/${fileName as string}`,
+        UploadId: uploadId as string
+      }).promise();
+      console.log("Aborted incomplete upload due to error.");
+    } catch (abortError) {
+      console.error("Failed to abort multipart upload:", abortError);
     }
 
-    const { buffer, mimetype } = req.file;
-    const filename = `${uid(16)}`;
-
-    const command = new PutObjectCommand({
-      Bucket: bucketName,
-      Key: `Thumbnail/${filename}`,
-      Body: buffer,
-      ContentType: mimetype || "application/octet-stream"
-    });
-    await client.send(command);
-    const url = await getSignedUrl(client, command, { expiresIn: 3600 });
-
-    res.status(200).json({
-      message: "File uploaded successfully",
-      key: `Thumbnail/${filename}`,
-      fileUrl: url
-    });
-  } catch (error) {
-    console.error("Error uploading file:", error);
-    res.status(500).json({ error: "Error uploading file" });
+    res.status(500).json({ success: false, message: "Error completing upload" });
   }
 };
+// import { PutObjectCommand } from "@aws-sdk/client-s3";
+// import { Request, Response } from "express";
+// import { bucketName, client } from "./s3";
+// import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+// import { uid } from "uid";
 
 export const uploadChannelIcon = async (req: Request, res: Response) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
+      return res.status(400).send('No file uploaded.');
     }
 
-    const { buffer, mimetype } = req.file;
-    const filename = `${uid(16)}`;
+    const { buffer, mimetype } = req.file; 
+    const pathType = req.params.pathType; 
+    const filename = `${uid(16)}`; 
 
     const command = new PutObjectCommand({
       Bucket: bucketName,
-      Key: `Channel_Icon/${filename}`,
+      Key: `${pathType}/${filename}`,
       Body: buffer,
-      ContentType: mimetype || "application/octet-stream"
+      ContentType: mimetype || "application/octet-stream", 
     });
+
     await client.send(command);
+
     const url = await getSignedUrl(client, command, { expiresIn: 3600 });
 
     res.status(200).json({
       message: "File uploaded successfully",
-      key: `Thumbnail/${filename}`,
-      fileUrl: url
+      key: `${pathType}/${filename}`,
+      fileUrl: url,
     });
   } catch (error) {
     console.error("Error uploading file:", error);
-    res.status(500).json({ error: "Error uploading file" });
+    res.status(500).send('An error occurred while uploading the file.');
   }
 };
+
+
+// export const uploadChannelIcon = async (req: Request, res: Response) => {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).send('No file uploaded.');
+//     }
+//     const file = req.file; 
+
+//     if (!file) {
+//       return res.status(400).send('No file uploaded.');
+//     }
+
+//     const url = await init(file, "Channel_Icon");
+
+//     res.status(200).json({ message: 'File uploaded successfully', url });
+//   } catch (error) {
+//     console.error('Error uploading file:', error);
+//     res.status(500).send('An error occurred while uploading the file.');
+//   }
+// };
+  // try {
+  //   if (!req.file) {
+  //     return res.status(400).json({ error: "No file uploaded" });
+  //   }
+
+  //   const { buffer, mimetype } = req.file;
+  //   const filename = `${uid(16)}`;
+
+  //   const command = new PutObjectCommand({
+  //     Bucket: bucketName,
+  //     Key: `Channel_Icon/${filename}`,
+  //     Body: buffer,
+  //     ContentType: mimetype || "application/octet-stream"
+  //   });
+  //   await client.send(command);
+  //   const url = await getSignedUrl(client, command, { expiresIn: 3600 });
+
+  //   res.status(200).json({
+  //     message: "File uploaded successfully",
+  //     key: `Thumbnail/${filename}`,
+  //     fileUrl: url
+  //   });
+  // } catch (error) {
+  //   console.error("Error uploading file:", error);
+  //   res.status(500).json({ error: "Error uploading file" });
+  // }
+
 
 export const deleteS3Object = async (
   req: Request,

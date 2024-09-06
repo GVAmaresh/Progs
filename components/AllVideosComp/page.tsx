@@ -4,9 +4,9 @@ import VideoComp from "./VideoComp";
 import Link from "next/link";
 
 export default function GetAllVideos({
-  gotoLink = "video/"
+  gotoLink = "video"
 }: {
-  gotoLink: string;
+  gotoLink?: string;
 }) {
   return (
     <>
@@ -22,7 +22,7 @@ export default function GetAllVideos({
             <Grid container justifyContent="center" spacing={4}>
               {Array.from({ length: 10 }, (_, index) => (
                 <Grid key={index} item xs={12} sm={6} md={4} lg={4}>
-                  <Link href={`${gotoLink}id={data.key}`}>
+                  <Link href={`${gotoLink}/5`}>
                     <VideoComp />
                   </Link>
                 </Grid>
