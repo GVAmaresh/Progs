@@ -36,10 +36,6 @@ const videoSchema: Schema<IVideo> = new Schema({
         required: true,
         unique: true,
         trim: true,
-        validate: {
-            validator: (value: string) => validator.isAlphanumeric(value.replace(/\s/g, '')),
-            message: 'Title must contain only letters and numbers.'
-        }
     },
     size: {
         type: Number,

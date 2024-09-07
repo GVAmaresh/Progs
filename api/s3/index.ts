@@ -18,7 +18,6 @@ export const region = process.env.NEXT_PUBLIC_AWS_REGION as string;
 export const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME as string;
 // const s3Endpoint = process.env.NEXT_PUBLIC_AWS_S3_ENDPOINT as string;
 
-console.log(accessKeyId, secretAccessKey, bucketName, region)
 if (!accessKeyId || !secretAccessKey || !region || !bucketName ) {
   console.error('Missing required environment variables');
   process.exit(1);

@@ -89,7 +89,6 @@ export default function CreateComp({ purpose = "" }: { purpose: string }) {
       }));
 
       if (channel) {
-        console.log(newEmail);
         await createChannelAPI({
           key: data.key,
           email: newEmail,
@@ -188,7 +187,15 @@ export default function CreateComp({ purpose = "" }: { purpose: string }) {
             onClick={handleUpload}
             sx={{
               color: "white",
-              "&:hover": { fontWeight: "bold", color: "white" }
+              "&:hover": {
+                fontWeight: "bold",
+                color: "white",
+                backgroundColor: "green"
+              },
+              "&:active": {
+                backgroundColor: "darkgreen"
+              },
+              backgroundColor: "green"
             }}
           >
             Create

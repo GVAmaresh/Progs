@@ -35,7 +35,7 @@ const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunk size
 
 export default function CreateCompVideo({ purpose = "" }: { purpose: string }) {
   const [file, setFile] = useState<File | null>(null);
-  const[fileThumbnail, setFileThumbnail] = useState<File|null>(null);
+  const [fileThumbnail, setFileThumbnail] = useState<File | null>(null);
   const [video, setVideo] = useState<IVideo | null>(null);
   const [fileName, setFileName] = useState<string>("");
   const [fileNameThumbnail, setFileNameThumbnail] = useState<string>("");
@@ -52,14 +52,15 @@ export default function CreateCompVideo({ purpose = "" }: { purpose: string }) {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    console.log("pathname:", pathname);
     if (!pathname) {
       throw new Error("Path name not specified");
     }
     const pathSegments = pathname.split("/");
 
     const lastSegment = pathSegments[pathSegments.length - 1];
-    setChannelName(lastSegment);
+    const decodedChannelName = decodeURIComponent(lastSegment);
+
+    setChannelName(decodedChannelName);
   }, [pathname, searchParams]);
 
   useEffect(() => {
@@ -156,8 +157,6 @@ export default function CreateCompVideo({ purpose = "" }: { purpose: string }) {
       if (!completeData.success) {
         throw new Error("Error completing upload");
       }
-      console.log(completeData.data)
-      console.log(completeData.data.Key);
       // setVideo((prev=>{...prev }))
 
       if (!fileThumbnail) {
@@ -177,9 +176,6 @@ export default function CreateCompVideo({ purpose = "" }: { purpose: string }) {
       if (!res_thumbnail.ok) {
         throw new Error(data_thumbnail.message || "Error uploading file");
       }
-      console.log(data_thumbnail);
-      console.log(data_thumbnail.key)
-
 
       if (!channelName) throw new Error("Channel name is required");
       setVideo((prev) => ({
@@ -188,14 +184,14 @@ export default function CreateCompVideo({ purpose = "" }: { purpose: string }) {
         videoName: prev?.videoName || "",
         channelName: channelName || "",
         videoDescription: prev?.videoDescription || "",
-        Thumbnail: data_thumbnail.key as string || "",
+        Thumbnail: (data_thumbnail.key as string) || "",
         VideoUrl: completeData.key || ""
       }));
 
       if (video) {
         console.log(video);
         await createVideoAPI({
-          key: completeData.data.Key ,
+          key: completeData.data.Key,
           email: newEmail,
           channelName: channelName,
           videoName: video.videoName,
@@ -307,7 +303,15 @@ export default function CreateCompVideo({ purpose = "" }: { purpose: string }) {
               onClick={handleUpload}
               sx={{
                 color: "white",
-                "&:hover": { fontWeight: "bold", color: "white" }
+                "&:hover": {
+                  fontWeight: "bold",
+                  color: "white",
+                  backgroundColor: "green"
+                },
+                "&:active": {
+                  backgroundColor: "darkgreen"
+                },
+                backgroundColor: "green"
               }}
             >
               Upload

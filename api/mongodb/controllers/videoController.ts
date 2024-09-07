@@ -15,8 +15,6 @@ export const addVideo = async (req: Request, res: Response): Promise<void> => {
     const { key, email, channelName, videoName, videoDescription, thumbnail } =
       req.body;
 
-    console.log(email, channelName, videoName, videoDescription);
-    console.log(key, thumbnail);
     const channel = await Channel.findOne({ email, channelName });
 
     // Check if the channel exists
@@ -134,7 +132,6 @@ export const getVideosByChannel = async (
   try {
     const { email, channelName } = req.body;
 
-    console.log(email, channelName);
     const channel = await Channel.findOne({ email, channelName });
 
     if (!channel) {
@@ -145,13 +142,14 @@ export const getVideosByChannel = async (
     const videos = await Video.find({ channelID: channel._id }).sort({
       createdAt: -1
     });
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Video Extracted Successfully",
-        data: videos
-      });
+    res.status(200).json({
+      success: true,
+      message: "Video Extracted Successfully",
+      data: {
+        channel,
+        videos
+      }
+    });
   } catch (err: any) {
     console.error("Error getting videos by channel:", err);
     res.status(500).json({ success: false, error: err.message });
@@ -184,3 +182,42 @@ export const getVideoById = catchAsync(
     });
   }
 );
+
+export const getAllVideosMongodb = async (req: Request, res: Response) => {
+  const page = parseInt(req.query.page as string) || 0;
+  const limit = 20;
+  const skip = page * limit;
+
+  try {
+    const videos = await Video.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: "channelID",
+        select: "channelName channelIcon"
+      });
+
+    res.status(200).json({ success: true, data: videos });
+  } catch (err: any) {
+    console.error("Error getting videos:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+export const getVideo = async (req: Request, res: Response) => {
+  const videoID = req.query.video as string;  
+
+  try {
+    const video = await Video.findById(videoID).populate({
+      path: "channelID",
+      select: "channelName channelIcon"
+    });;
+    if (!video) throw new Error("Video not found");
+
+    res.status(200).json({ success: true, data: video });
+  } catch (err: any) {
+    console.error("Error getting videos:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};

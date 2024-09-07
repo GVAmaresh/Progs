@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { useUserDetails } from "../../components/Accounts/accountMenu";
 import { getChannel } from "../../controllers/mongodbAPI";
 import Image from "next/image";
+import { RedirectToSignIn, SignedIn, SignedOut } from "@clerk/nextjs";
 
 const cloudfront = process.env.NEXT_PUBLIC_AWS_CLOUDFRONT;
 
@@ -24,7 +25,6 @@ export default function Channel() {
   const [newEmail, setNewEmail] = useState<string>("");
   const [channelList, setChannelList] = useState<IChannel[]>([]);
   const answer = useUserDetails();
-  console.log(cloudfront);
 
   useEffect(() => {
     if (answer.user) {
@@ -47,6 +47,7 @@ export default function Channel() {
 
   return (
     <>
+    <SignedIn>
       <div className="ml-12 lg:ml-32">
         <div className=" font-extrabold text-xl lg:text-3xl">Channel Page</div>
         <div className="bg-white h-1 mt-2 w-12 lg:w-20 rounded-xl"></div>
@@ -106,6 +107,10 @@ export default function Channel() {
           </div>
         </div>
       </div>
+      </SignedIn>
+      <SignedOut>
+        <RedirectToSignIn />
+      </SignedOut>
     </>
   );
 }
